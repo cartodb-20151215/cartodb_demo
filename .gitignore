@@ -2,11 +2,7 @@
 ###################
 *_secret_info.py
 *.pyc
+
 # JSON files #
 ###################
 *test.json
-_secret_info.py
-
-*.pyc
-
-*.pyc
