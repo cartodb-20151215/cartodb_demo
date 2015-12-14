@@ -28,7 +28,5 @@ print theSHPname, ' ...is the name of your shapefile.'
 zipYourSHP(shpFolder, 'data_to_cdb')
 
 impCMD = "python cartodb-utils.py import -f data_to_cdb.zip -k "+cdbK+" -u  "+cdbU
-#os.system(impCMD) #runs the system command
-
-
+os.system(impCMD) #runs the system command
 
