@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>User Location - Census Tract</title>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
+    <link rel="shortcut icon" href="http://cartodb.com/assets/favicon.ico" />
+    <style>
+      html, body, #map {
+        height: 100%;
+        padding: 0;
+        margin: 0;
+      }
+    </style>
+
+    <link rel="stylesheet" href="http://libs.cartocdn.com/cartodb.js/v3/3.11/themes/css/cartodb.css" />
+  </head>
+  <body>
+    <div id="map"></div>
+
+    <!-- include cartodb.js library -->
+    <script src="http://libs.cartocdn.com/cartodb.js/v3/3.11/cartodb.js"></script>
+    <script>      // credit: http://html5doctor.com/finding-your-position-with-geolocation/
+    var map;
+              function detectUserLocation(){
+                if (navigator.geolocation) {
+                  var timeoutVal = 10 * 1000 * 1000;
+                  navigator.geolocation.watchPosition(
+                    mapToPosition, 
+                    alertError,
+                    { enableHighAccuracy: true, timeout: timeoutVal, maximumAge: 0 }
+                  );
+                }
+                else {
+                  alert("Geolocation is not supported by this browser");
+                }
+                
+                function alertError(error) {
+                  var errors = { 
+                    1: 'Permission denied',
+                    2: 'Position unavailable',
+                    3: 'Request timeout'
+                  };
+                  alert("Error: " + errors[error.code]);
+                }
+              }
+              </script>
+    <script>
+
+      function main() {
+        cartodb.createVis('map', 'https://dms8md23.cartodb.com/api/v2/viz/e11893e4-88c8-11e5-8791-0ecfd53eb7d3/viz.json', {
+            title: false,
+            description: true,
+            search: true,
+            tiles_loader: true,
+            center_lat: 40.704424, 
+            center_lon: -73.936596, 
+            zoom: 17,
+            scrollwheel: false,
+            search: false,
+            shareable: false,
+            layer_selector: false,
+            mobile_layout: true,
+        })
+        .done(function(vis, layers) {
+          // layer 0 is the base layer, layer 1 is cartodb layer
+          // setInteraction is disabled by default
+          layers[1].setInteraction(true);
+          layers[1].on('featureOver', function(e, pos, latlng, data) {
+            cartodb.log.log(e, pos, latlng, data);
+          });
+          // you can get the native map to work with it
+          map = vis.getNativeMap();
+          // now, perform any operations you need
+          // map.setZoom(3);
+          // map.panTo([50.5, 30.5]);
+          detectUserLocation();
+
+        })
+        .error(function(err) {
+          console.log(err);
+        });
+      }
+      window.onload = main;
+
+      
+
+      function mapToPosition(position) {
+          lon = position.coords.longitude;
+          lat = position.coords.latitude;
+          
+          var jsonURL = "https://common-data.cartodb.com/api/v2/sql?q=select geoid from public.tl_2014_census_tracts where st_intersects(the_geom,st_GeomFromText('POINT("+lon+" "+lat+")', 4326)) & format=geojson";
+          
+         // var jsonObj = [];
+         $.getJSON(jsonURL, function(data) {
+             $.each(data.rows, function(i, f) {
+                tblRow   = f.geoid;
+                tractID  = tblRow.substr(5, 6); 
+                stateID  = tblRow.substr(0, 2);
+                countyID = tblRow.substr(2, 3); 
+
+          var cenURL  = "http://api.census.gov/data/2010/sf1?key=30699f15ab4d04a1e0943715b539d256c9a3ee44&get=P0010001&for=tract:"+tractID+"&in=state:"+stateID+"+county:"+countyID
+               
+         $.getJSON(cenURL, function(data) {
+             var cenVar = data;//.split(",",1);//.["P0010001"][0]
+             //popVar = data.str.split(",",-3);
+                      
+          var varName = cenVar[0][0];
+          var popVal  = cenVar[1][0];
+
+          // window.alert(jsonObj);
+
+          //updateQuery();
+          map.setView(new L.LatLng(lat,lon), 18);
+          new L.CircleMarker([lat,lon],{radius: 30}).addTo(map).bindPopup("<b>You are located (via ISP) at: </b>"+lat+", "+lon+" <b></br>Census Tract (2010):</b> "+tblRow+" </br> <b>Population (Census 2010)</b> ("+varName+") of <b>"+popVal+"</b></br> Via <a href='http://cartodb.com'>CartoDB and Common Data</a>, PostGIS (SQL), and the <a href='http://api.census.gov/'>US Census API</a>").openPopup();
+          //new CircleMarker;
+
+});
+         });});
+};
+
+      
+
+      mapToPosition();
+
+
+
+
+    </script>
+
+   
+
+
+
+
+  </body>
+</html>
